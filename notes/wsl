@@ -1,0 +1,17 @@
+run powershell as admin
+Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Windows-Subsystem-Linux
+
+windows store select linux e.g. ubuntu
+
+open cmd type bash
+
+sudo apt-get update
+sudo apt-get install libcurl4-openssl-dev
+sudo apt-get install libssl-dev
+sudo apt install python3-pip
+sudo pip3 install graphviz
+
+files are supposedly under C:\Users\<username>\AppData\Local\Packages\<wsl edition>appdate
+
+
+https://www.paraesthesia.com/archive/2018/09/20/docker-on-wsl-with-virtualbox-and-docker-machine/

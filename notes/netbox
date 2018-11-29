@@ -1,0 +1,16 @@
+#https://github.com/digitalocean/netbox
+
+#https://www.digitalocean.com/community/tutorials/how-to-install-and-use-docker-on-centos-7
+sudo yum check-update
+curl -fsSL https://get.docker.com/ | sh
+sudo systemctl start docker
+sudo systemctl status docker
+sudo systemctl enable docker
+
+#https://github.com/ninech/netbox-docker
+git clone -b master https://github.com/ninech/netbox-docker.git
+cd netbox-docker
+docker-compose pull
+docker-compose up -d
+docker-compose port nginx 8080
+#Default credentials Username: admin / Password: admin / API Token: 0123456789abcdef0123456789abcdef01234567
