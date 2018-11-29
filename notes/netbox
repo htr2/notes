@@ -6,6 +6,7 @@ curl -fsSL https://get.docker.com/ | sh
 sudo systemctl start docker
 sudo systemctl status docker
 sudo systemctl enable docker
+sudo pip install docker-compose
 
 #https://github.com/ninech/netbox-docker
 git clone -b master https://github.com/ninech/netbox-docker.git
