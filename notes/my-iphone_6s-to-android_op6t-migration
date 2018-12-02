@@ -37,7 +37,8 @@ ios export individual chats with media to gdrive
 sms method below might be an alternative?
 
 books
-i didnt have many but some i wanted to keep, so just export via email (sms method below might be an alternative)
+i didnt have many but some i wanted to keep, exported via email (sms method below might be an alternative)
+alternatively copy from itunes library (usually C:\Users\<username>\Music\iTunes\iTunes Media\Books)
 
 sms
 use local itunes backup folder (found mine in C:\Users\<username>\Apple\MobileSync\Backup\<id>)
