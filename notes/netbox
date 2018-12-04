@@ -13,5 +13,6 @@ git clone -b master https://github.com/ninech/netbox-docker.git
 cd netbox-docker
 docker-compose pull
 docker-compose up -d
-docker-compose port nginx 8080
+docker-compose port nginx 8080 
+#this tells the port to which to browse to for GUI
 #Default credentials Username: admin / Password: admin / API Token: 0123456789abcdef0123456789abcdef01234567
