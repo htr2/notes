@@ -12,3 +12,9 @@ python3.6 -m  pip install netmiko
 python3.6 -m  pip install ansible
 python3.6 -m  pip install napalm
 python3.6 -m  pip install pysnmp
+
+sudo yum install http://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+wget https://releases.ansible.com/ansible-tower/setup/ansible-tower-setup-3.4.1-1.tar.gz
+tar xvzf ansible-tower-setup-3.4.1-1.tar.gz
+vi ./ansible-tower-setup-3.4.1-1/inventory #supply passwords e.g. AWX
+sudo ./ansible-tower-setup-3.4.1-1/setup.sh
