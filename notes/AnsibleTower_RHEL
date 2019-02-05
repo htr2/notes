@@ -1,0 +1,14 @@
+sudo yum install rh-python36-python-pip.noarch	(sudo /opt/rh/rh-python36/root/usr/bin/python3.6 or sudo scl enable rh-python36 bash)
+
+sudo /opt/rh/rh-python36/root/usr/bin/python3.6 -m pip install --upgrade pip
+sudo /opt/rh/rh-python36/root/usr/bin/python3.6 -m pip install --user pipenv
+sudo /opt/rh/rh-python36/root/usr/bin/python3.6 -m pip install virtualenv
+mkdir pve
+scl enable rh-python36 bash
+python3.6 -m virtualenv PVE_ANSIBLE
+source PVE_ANSIBLE/bin/activate
+
+python3.6 -m  pip install netmiko
+python3.6 -m  pip install ansible
+python3.6 -m  pip install napalm
+python3.6 -m  pip install pysnmp
