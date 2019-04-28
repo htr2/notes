@@ -1,0 +1,132 @@
+"""
+example script how to extract parameters from a Cisco IOS configuration using ciscoconfparse
+from https://github.com/hoelsner/python-script-examples/tree/master/cisco-ios-config-parameter-extraction
+"""
+import json
+import re
+import ipaddress
+import sys
+
+from ciscoconfparse import CiscoConfParse
+from ciscoconfparse.ccp_util import IPv4Obj
+#from netaddr import ipaddress, ipnetwork
+
+search_subnet = sys.argv[3]
+search_subnet_net = ipaddress.ip_network(search_subnet)
+
+result_interface_dict ={}
+result2_interface_dict ={}
+result_description_dict = {}
+result2_description_dict = {}
+
+try:
+    config_file1 = open(sys.argv[1])
+    config_file2 = open(sys.argv[2])
+    search_subnet = IPv4Obj(sys.argv[3]) # e.g. '10.50.0.0/16'
+except:
+    print("input error")
+
+
+if __name__ == "__main__":
+    # the result dictionary
+    result = {
+        "features": [],
+        "interfaces": {}
+    }
+
+    # create CiscoConfParse object using a configuration file stored in the
+    # same directory as the script
+    confparse = CiscoConfParse(sys.argv[1])
+
+    # extract the interface name and description
+    # first, we get all interface commands from the configuration
+    interface_cmds = confparse.find_objects(r"^interface ")
+
+    # iterate over the resulting IOSCfgLine objects
+    for interface_cmd in interface_cmds:
+        # get the interface name (remove the interface command from the configuration line)
+        intf_name = interface_cmd.text[len("interface "):]
+        result["interfaces"][intf_name] = {}
+
+        # search for the description command, if not set use "not set" as value
+        result["interfaces"][intf_name]["description"] = "not set"
+        for cmd in interface_cmd.re_search_children(r"(?<=description).*"):
+            result["interfaces"][intf_name]["description"] = cmd.text.strip()[len("description "):]
+        # extract IP addresses if defined
+        IPv4_REGEX = r"ip\saddress\s(.*[^ secondary])"
+        for cmd in interface_cmd.re_search_children(IPv4_REGEX):
+            # ciscoconfparse provides a helper function for this task
+            ipv4_addr = interface_cmd.re_match_iter_typed(IPv4_REGEX, result_type=IPv4Obj)
+
+            result["interfaces"][intf_name].update({
+                "ipv4": {
+                    "address": ipv4_addr.ip.exploded,
+                    "netmask": ipv4_addr.netmask.exploded
+                }
+            })
+
+            result_interface_dict[str(ipv4_addr)] = intf_name
+            result_description_dict[str(ipv4_addr)] = result["interfaces"][intf_name]
+
+            #print("first",result)
+
+if __name__ == "__main__":
+    # the result2 dictionary
+    result2 = {
+        "features": [],
+        "interfaces": {}
+    }
+
+    # create CiscoConfParse object using a configuration file stored in the
+    # same directory as the script
+    confparse = CiscoConfParse(sys.argv[2])
+
+    # extract the interface name and description
+    # first, we get all interface commands from the configuration
+    interface_cmds = confparse.find_objects(r"^interface ")
+
+    # iterate over the result2ing IOSCfgLine objects
+    for interface_cmd in interface_cmds:
+        # get the interface name (remove the interface command from the configuration line)
+        intf_name = interface_cmd.text[len("interface "):]
+        result2["interfaces"][intf_name] = {}
+
+        # search for the description command, if not set use "not set" as value
+        result2["interfaces"][intf_name]["description"] = "not set"
+        for cmd in interface_cmd.re_search_children(r"(?<=description).*"):
+            result2["interfaces"][intf_name]["description"] = cmd.text.strip()[len("description "):]
+        # extract IP addresses if defined
+        IPv4_REGEX = r"ip\saddress\s(.*[^ secondary])"
+        for cmd in interface_cmd.re_search_children(IPv4_REGEX):
+            # ciscoconfparse provides a helper function for this task
+            ipv4_addr = interface_cmd.re_match_iter_typed(IPv4_REGEX, result_type=IPv4Obj)
+
+            result2["interfaces"][intf_name].update({
+                "ipv4": {
+                    "address": ipv4_addr.ip.exploded,
+                    "netmask": ipv4_addr.netmask.exploded
+                }
+            })
+            result2_interface_dict[str(ipv4_addr)] = intf_name
+            result2_description_dict[str(ipv4_addr)] = result2["interfaces"][intf_name]
+            #print("second",result2)
+
+for interface in result_interface_dict:
+    intname = str(result_interface_dict.get(interface))
+    cidr_match = re.search('[0-9]+(?:\.[0-9]+){3}\/.*[^.>]', str(interface))
+    cidr_value = cidr_match.group(0)
+    result_net4 = ipaddress.ip_network(cidr_value, strict=False)
+    description = str(result_description_dict.get(interface))
+    description_match = re.search("(?<='description': ').*?(?=')", str(description))
+    description_value = description_match.group(0)
+    if result_net4.overlaps(search_subnet_net):
+        for interface2 in result2_interface_dict:
+            intname2 = str(result2_interface_dict.get(interface2))
+            cidr_match = re.search('[0-9]+(?:\.[0-9]+){3}\/.*[^.>]', str(interface2))
+            cidr_value = cidr_match.group(0)
+            result2_net4 = ipaddress.ip_network(cidr_value, strict=False)
+            description2 = str(result2_description_dict.get(interface2))
+            description2_match = re.search("(?<='description': ').*?(?=')", str(description2))
+            description2_value = description2_match.group(0)
+            if result_net4.overlaps(result2_net4):
+                print('from ' + sys.argv[1] + ' network ' + str(result_net4) + ' on interface ' + intname + ' Descrption:' + description_value + '    overlaps with network from ' + sys.argv[2] + ' network '  + str(result2_net4) + ' on interface ' + intname2 + ' Descrption:' + description2_value)
