@@ -12,20 +12,21 @@ from ciscoconfparse.ccp_util import IPv4Obj
 #from netaddr import ipaddress, ipnetwork
 
 search_subnet = sys.argv[3]
-search_subnet_net = ipaddress.ip_network(search_subnet)
+search_subnet_net = ipaddress.ip_network(search_subnet, strict=False)
 
 result_interface_dict ={}
 result2_interface_dict ={}
 result_description_dict = {}
 result2_description_dict = {}
 
+"""
 try:
     config_file1 = open(sys.argv[1])
     config_file2 = open(sys.argv[2])
     search_subnet = IPv4Obj(sys.argv[3]) # e.g. '10.50.0.0/16'
 except:
     print("input error")
-
+"""
 
 if __name__ == "__main__":
     # the result dictionary
