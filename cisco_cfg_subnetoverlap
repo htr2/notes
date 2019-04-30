@@ -19,15 +19,10 @@ result2_interface_dict ={}
 result_description_dict = {}
 result2_description_dict = {}
 
-"""
-try:
-    config_file1 = open(sys.argv[1])
-    config_file2 = open(sys.argv[2])
-    search_subnet = IPv4Obj(sys.argv[3]) # e.g. '10.50.0.0/16'
-except:
-    print("input error")
-"""
+#output format
+print("file1,network,interface,description,vrf,,file2,network,interface,description,vrf")
 
+#parsing of first file
 if __name__ == "__main__":
     # the result dictionary
     result = {
@@ -53,6 +48,13 @@ if __name__ == "__main__":
         result["interfaces"][intf_name]["description"] = "not set"
         for cmd in interface_cmd.re_search_children(r"(?<=description).*"):
             result["interfaces"][intf_name]["description"] = cmd.text.strip()[len("description "):]
+
+        # search for the vrf of the interface, if not set use "not set" as value
+        result["interfaces"][intf_name]["vrf"] = "not set"
+        for cmd in interface_cmd.re_search_children(r"((?<=vrf member).*|(?<=vrf forwarding).*)"):
+            result["interfaces"][intf_name]["vrf"] = cmd.text.strip()[len("ip vrf forwarding "):]
+            #print("-vrf1:",result)
+
         # extract IP addresses if defined
         IPv4_REGEX = r"ip\saddress\s(.*[^ secondary])"
         for cmd in interface_cmd.re_search_children(IPv4_REGEX):
@@ -65,12 +67,12 @@ if __name__ == "__main__":
                     "netmask": ipv4_addr.netmask.exploded
                 }
             })
-
+            #the key
             result_interface_dict[str(ipv4_addr)] = intf_name
+            #the value, not just description but all interface information
             result_description_dict[str(ipv4_addr)] = result["interfaces"][intf_name]
 
-            #print("first",result)
-
+#parsing of second file
 if __name__ == "__main__":
     # the result2 dictionary
     result2 = {
@@ -96,6 +98,12 @@ if __name__ == "__main__":
         result2["interfaces"][intf_name]["description"] = "not set"
         for cmd in interface_cmd.re_search_children(r"(?<=description).*"):
             result2["interfaces"][intf_name]["description"] = cmd.text.strip()[len("description "):]
+
+        # search for the vrf of the interface, if not set use "not set" as value
+        result2["interfaces"][intf_name]["vrf"] = "not set"
+        for cmd in interface_cmd.re_search_children(r"((?<=vrf member).*|(?<=vrf forwarding).*)"):
+            result2["interfaces"][intf_name]["vrf"] = cmd.text.strip()[len("ip vrf forwarding "):]
+
         # extract IP addresses if defined
         IPv4_REGEX = r"ip\saddress\s(.*[^ secondary])"
         for cmd in interface_cmd.re_search_children(IPv4_REGEX):
@@ -110,16 +118,22 @@ if __name__ == "__main__":
             })
             result2_interface_dict[str(ipv4_addr)] = intf_name
             result2_description_dict[str(ipv4_addr)] = result2["interfaces"][intf_name]
-            #print("second",result2)
 
+#convert to ipaddress format
 for interface in result_interface_dict:
     intname = str(result_interface_dict.get(interface))
+    #get the network
     cidr_match = re.search('[0-9]+(?:\.[0-9]+){3}\/.*[^.>]', str(interface))
     cidr_value = cidr_match.group(0)
     result_net4 = ipaddress.ip_network(cidr_value, strict=False)
+    #get the interface information
     description = str(result_description_dict.get(interface))
     description_match = re.search("(?<='description': ').*?(?=')", str(description))
     description_value = description_match.group(0)
+    vrf_match = re.search("(?<='vrf': ').*?(?=')", str(description))
+    vrf_value = vrf_match.group(0)
+    
+    #comparison of the two reults based on IP address value, if they are within the subnet of interest
     if result_net4.overlaps(search_subnet_net):
         for interface2 in result2_interface_dict:
             intname2 = str(result2_interface_dict.get(interface2))
@@ -129,5 +143,8 @@ for interface in result_interface_dict:
             description2 = str(result2_description_dict.get(interface2))
             description2_match = re.search("(?<='description': ').*?(?=')", str(description2))
             description2_value = description2_match.group(0)
+            vrf2_match = re.search("(?<='vrf': ').*?(?=')", str(description2))
+            vrf2_value = vrf2_match.group(0)
+            #print result
             if result_net4.overlaps(result2_net4):
-                print('from ' + sys.argv[1] + ' network ' + str(result_net4) + ' on interface ' + intname + ' Descrption:' + description_value + '    overlaps with network from ' + sys.argv[2] + ' network '  + str(result2_net4) + ' on interface ' + intname2 + ' Descrption:' + description2_value)
+                print(sys.argv[1] + ',' + str(result_net4) + ',' + intname + ',' + description_value + ',' + vrf_value + ',overlap,' + sys.argv[2] + ','  + str(result2_net4) + ',' + intname2 + ',' + description2_value + ',' + vrf2_value)
