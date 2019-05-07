@@ -1,6 +1,7 @@
 """
 example script how to extract parameters from a Cisco IOS configuration using ciscoconfparse
 from https://github.com/hoelsner/python-script-examples/tree/master/cisco-ios-config-parameter-extraction
+with hindsight this might be better realised with txtfsm or 
 """
 import json
 import re
