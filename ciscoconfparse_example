@@ -1,0 +1,88 @@
+"""
+example script how to extract parameters from a Cisco IOS configuration using ciscoconfparse
+from https://github.com/hoelsner/python-script-examples/tree/master/cisco-ios-config-parameter-extraction
+"""
+import json
+import re
+import ipaddress
+import sys
+import glob
+import errno
+
+from ciscoconfparse import CiscoConfParse
+from collections import OrderedDict
+from ciscoconfparse.ccp_util import IPv4Obj
+
+
+
+
+if __name__ == "__main__":
+
+    # network list result dictionary
+    network_list = {}
+
+    # the interface result dictionary 
+    interface_list = {}
+
+    # check if we have a path as command line value
+    if len (sys.argv) >= 2: 
+        default_path = './'+sys.argv[1]+'/*.*'
+        print(default_path)
+    else: 
+        default_path = './configs/*.*'
+
+    # check if all the files in the directory can be accessed
+    filenames = glob.glob(default_path)
+    for filename in filenames:
+        try:
+            with open(filename) as f:
+                pass # file can be opened, lets continue
+
+        except IOError as exc:
+            if exc.errno != errno.EISDIR:
+                raise
+
+        #parse all the files
+
+        # create CiscoConfParse object using a configuration file stored in the
+        # same directory as the script
+        confparse = CiscoConfParse(filename)
+
+        # extract the interface name and description
+        # first, we get all interface commands from the configuration
+        interface_cmds = confparse.find_objects(r"^interface ")
+
+        # iterate over the resulting IOSCfgLine objects
+        for interface_cmd in interface_cmds:
+            # get the interface name (remove the interface command from the configuration line)
+            intf_name = interface_cmd.text[len("interface "):]
+            interface_list[intf_name] = {}
+
+            interface_list[intf_name]["source"]=filename
+
+            # search for the description command, if not set use "not set" as value
+            interface_list[intf_name]["description"] = "not set"
+            for cmd in interface_cmd.re_search_children(r"(?<=description).*"):
+                interface_list[intf_name]["description"] = cmd.text.strip()[len("description "):]
+
+            # search for the vrf of the interface, if not set use "not set" as value
+            interface_list[intf_name]["vrf"] = "not set"
+            for cmd in interface_cmd.re_search_children(r"((?<=vrf member).*|(?<=vrf forwarding).*)"):
+                interface_list[intf_name]["vrf"] = cmd.text.strip()[len("ip vrf forwarding "):]
+                
+            # extract IP addresses if defined
+            IPv4_REGEX = r"ip\saddress\s(.*[^ secondary])"
+            for cmd in interface_cmd.re_search_children(IPv4_REGEX):
+                # ciscoconfparse provides a helper function for this task
+                ipv4_addr = interface_cmd.re_match_iter_typed(IPv4_REGEX, result_type=IPv4Obj)   
+                
+                #get the network   
+                ip_match=re.search("<IPv4Obj (.*)>", str(ipv4_addr))
+                cidr_value = ip_match.group(1)
+                interface_list[intf_name]["network"] = ipaddress.ip_network(cidr_value, strict=False)
+                network_list[interface_list[intf_name]["network"]]=interface_list[intf_name]
+                #print(str(interface_list[intf_name]["network"]) + ',' + filename + ',' + ',' + intf_name + ',' + interface_list[intf_name]["description"] + ',' + interface_list[intf_name]["vrf"])
+            #print(network_list)
+
+for key in sorted(network_list.keys()):
+    print("%s: %s" % (key, network_list[key]))
