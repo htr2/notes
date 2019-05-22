@@ -1,0 +1,14 @@
+https://www.cyberciti.biz/faq/linux-unix-ssh-proxycommand-passing-through-one-host-gateway-server/
+
+ssh -o ProxyCommand='ssh vivek@Jumphost nc FooServer 22' vivek@FooServer
+
+ssh -o ProxyCommand='ssh -l jh_user jumphost nc target 22' -l target_user -c aes256-cbc target
+
+or via ssh_cfg file (napalm does not use default ~/.ssh/config..)
+
+Host testhost
+  User target_user
+  HostName target
+  ProxyCommand ssh -l proxy_user proxy nc %h %p  
+
+call above via: ssh -c aes256-cbc -F ./ssh_cfg testhost
