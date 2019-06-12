@@ -1,0 +1,57 @@
+#!/usr/bin/env python
+"""
+based on samples from acitoolkit, logs in to the APIC and will create routereflector on spines.
+"""
+import acitoolkit.acitoolkit as aci
+from acitoolkit.aciphysobject import Node
+
+# Define static values to pass (edit these if you wish to set differently)
+DEFAULT_BGP_AS_NR = '65555'
+DEFAULT_RR = '' #Switch ID to run the RR, default is none (ie all spines will be RR)
+
+
+def main():
+    """
+    Main create RR routine
+    :return: None
+    """
+    # Get all the arguments
+    description = 'It logs in to the APIC and will create the RouteReflector.'
+    creds = aci.Credentials('apic', description)
+    creds.add_argument('-b', '--bgpasnr', help='BGP AS Number',
+                       default=DEFAULT_BGP_AS_NR)
+    creds.add_argument('-rr', '--routereflector', help='Switch ID to become RR, default=all spines',
+                       default=DEFAULT_RR)
+    args = creds.get()
+
+    # Login to the APIC
+    session = aci.Session(args.url, args.login, args.password)
+    resp = session.login()
+    if not resp.ok:
+        print('%% Could not login to APIC')
+
+    #Identify Spines
+    spines = []
+    nodes = Node.get(session)
+    for node in nodes:
+        if node.role == "spine":
+            spines.append(node.node)
+
+    if DEFAULT_RR != '':
+        spines = DEFAULT_RR
+
+    for spine in spines:
+        # Parameters to modify, using default values if not overriden by args
+        url='/api/node/mo/uni/fabric.json'
+        json={"bgpInstPol":{"attributes":{"annotation":"","descr":"","dn":"uni/fabric/bgpInstP-default","name":"default","nameAlias":"","ownerKey":"","ownerTag":""},"children":[{"bgpRRP":{"attributes":{"annotation":"","descr":"","name":"","nameAlias":""},"children":[{"bgpRRNodePEp":{"attributes":{"annotation":"","descr":"","id":spine,"nameAlias":"","podId":"1"}}}]}},{"bgpExtRRP":{"attributes":{"annotation":"","descr":"","name":"","nameAlias":""}}},{"bgpAsP":{"attributes":{"annotation":"","asn": args.bgpasnr,"descr":"","name":"","nameAlias":""}}}]}}
+        resp = session.push_to_apic(url, json)
+        if not resp.ok:
+            print('%% Error: Could not push configuration to APIC')
+    
+
+
+if __name__ == '__main__':
+    try:
+        main()
+    except KeyboardInterrupt:
+        pass
